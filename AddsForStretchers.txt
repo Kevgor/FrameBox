@@ -1,0 +1,106 @@
+// ---- Stretcher ring (replaces individual stretchers) ----
+add_stretcher_ring            = true;    // new ring ON
+stretcher_notch_in            = 0.25;    // 0.25" x 0.25" notch at each ring corner
+
+// Keep the height setting you used before:
+stretcher_bottom_from_floor_in = 6.0;
+
+// Turn OFF the old perimeter-stick stretchers if present:
+add_stretchers = false;
+
+
+
+
+// Derived variables
+stretcher_notch = U(stretcher_notch_in);
+
+
+// Modules
+
+// Rectangular stretcher ring at a given height with 0.25"x0.25" corner notches
+// Outer size = inner_x × inner_y so its OUTER faces line up with the legs' INNER faces.
+// The notches create clearance at the leg inside corners for weld access.
+module stretcher_ring_notched_rect(ix=inner_x, iy=inner_y, od=tube_od, w=wall,
+                                   legL=leg_len, bottom_from_floor=stretcher_bottom_from_floor,
+                                   notch=stretcher_notch) {
+
+    // Vertical placement (same scheme as old stretchers)
+    z_leg_bottom = -od/2 - legL;
+    z_bottom     =  z_leg_bottom + bottom_from_floor;  // bottom face of ring tubes
+    z_center     =  z_bottom + od/2;                   // center Z (square_tube_x is centered in Z)
+
+    // Build a butt-jointed rectangular frame sized to ix × iy (outer dimensions)
+    // Reuse the frame_rect but with ox=ix, oy=iy
+    // Then subtract four 0.25" x 0.25" notches from the ring's outside corners.
+    difference() {
+        // The ring itself
+        translate([0,0,z_center]) frame_rect(ix, iy, od, w, 0);
+
+        // Corner notches (explicit 4 cubes; center=false to keep importer happy)
+        // Each notch cube runs full tube depth in Z (with a little eps).
+        // NE (+X,+Y)
+        translate([ +ix/2 - notch, +iy/2 - notch, z_center - od/2 - eps ])
+            cube([ notch, notch, od + 2*eps ], center=false);
+        // NW (−X,+Y)
+        translate([ -ix/2,         +iy/2 - notch, z_center - od/2 - eps ])
+            cube([ notch, notch, od + 2*eps ], center=false);
+        // SW (−X,−Y)
+        translate([ -ix/2,         -iy/2,         z_center - od/2 - eps ])
+            cube([ notch, notch, od + 2*eps ], center=false);
+        // SE (+X,−Y)
+        translate([ +ix/2 - notch, -iy/2,         z_center - od/2 - eps ])
+            cube([ notch, notch, od + 2*eps ], center=false);
+    }
+}
+
+
+/// Updates to main
+render() difference() {
+    union() {
+        // Top frame
+        frame_rect(outer_x, outer_y, tube_od, wall, 0);
+
+        // Tabs
+        tabs_rect_all_sides(inner_x, inner_y, tube_od);
+
+        // Legs
+        if (add_legs) legs_four_rect(outer_x, outer_y, tube_od, leg_len);
+
+        // NEW: Stretcher ring
+        if (add_stretcher_ring)
+            stretcher_ring_notched_rect(inner_x, inner_y, tube_od, wall,
+                                        leg_len, stretcher_bottom_from_floor,
+                                        stretcher_notch);
+    }
+
+    // Tab holes (optional)
+    tab_holes_rect(inner_x, inner_y, tube_od);
+}
+
+
+/// BOM ECho
+// For the stretcher ring (outer = inner opening):
+inner_x_in = outer_x_in - 2 * tube_od_in;
+inner_y_in = outer_y_in - 2 * tube_od_in;
+
+// Ring members (butt-jointed like top)
+ring_long_len_in  = inner_x_in;                    // 2 pcs along X
+ring_short_len_in = inner_y_in - 2 * tube_od_in;   // 2 pcs along Y (between the long pcs)
+q_ring_long = 2;
+q_ring_short = 2;
+
+
+Replace old strecher echoes
+echo(str("BOM, stretcher_ring_long, qty=", q_ring_long, ", len_in=", ring_long_len_in, ", stock=1.125x", wall_in, " sq tube"));
+echo(str("BOM, stretcher_ring_short, qty=", q_ring_short, ", len_in=", ring_short_len_in, ", stock=1.125x", wall_in, " sq tube"));
+
+And adjust your total length to include ring members instead of the old rails:
+
+total_len_in = q_frame_long*frame_long_len_in +
+               q_frame_short*frame_short_len_in +
+               q_leg*leg_len_in +
+               q_ring_long*ring_long_len_in +
+               q_ring_short*ring_short_len_in;
+
+
+               

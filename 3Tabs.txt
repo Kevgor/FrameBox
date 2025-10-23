@@ -1,0 +1,141 @@
+// ---- Tab counts per side ----
+n_tabs_long_side  = 3;     // ← as requested: 3 tabs on the long edges
+n_tabs_short_side = 2;     // keep 2 on the short edges
+
+// Updated Module
+
+// Tabs: 3 on the long edges, 2 on the short edges; centers at 5" from each end.
+// Long axis chosen by comparing outer_x vs outer_y (ties → treat X as long).
+module tabs_rect_all_sides(ix=inner_x, iy=inner_y, od=tube_od) {
+    if (add_tabs) {
+        // Vertical placement: top of tabs meets plywood underside
+        z_top =  +od/2 - recess - ply_thick - ply_clear;
+        z0    =  z_top - tab_thk;
+
+        // Determine which axis is long (use model units here)
+        longX = (outer_x >= outer_y);
+
+        // Margin in model units
+        m = tab_margin;
+
+        // Precompute span offsets from center to tab centers (long vs short)
+        // For 2 per side: ±(span/2 − margin)
+        // For 3 per side: −(span/2 − margin), 0, +(span/2 − margin)
+        px_long  = ix/2 - m;
+        py_long  = iy/2 - m;
+        px_short = ix/2 - m;
+        py_short = iy/2 - m;
+
+        if (longX) {
+            // --- Long edges are TOP/BOTTOM (±Y), tabs vary along X: 3 each side ---
+            // TOP (+Y): extend −Y
+            translate([ -px_long - tab_len/2, +iy/2 - tab_depth, z0 ]) cube([ tab_len, tab_depth, tab_thk ], center=false);
+            translate([  0        - tab_len/2, +iy/2 - tab_depth, z0 ]) cube([ tab_len, tab_depth, tab_thk ], center=false);
+            translate([ +px_long - tab_len/2, +iy/2 - tab_depth, z0 ]) cube([ tab_len, tab_depth, tab_thk ], center=false);
+
+            // BOTTOM (−Y): extend +Y
+            translate([ -px_long - tab_len/2, -iy/2, z0 ]) cube([ tab_len, tab_depth, tab_thk ], center=false);
+            translate([  0        - tab_len/2, -iy/2, z0 ]) cube([ tab_len, tab_depth, tab_thk ], center=false);
+            translate([ +px_long - tab_len/2, -iy/2, z0 ]) cube([ tab_len, tab_depth, tab_thk ], center=false);
+
+            // --- Short edges are LEFT/RIGHT (±X), tabs vary along Y: 2 each side ---
+            // RIGHT (+X): extend −X
+            translate([ +ix/2 - tab_depth, -py_short - tab_len/2, z0 ]) cube([ tab_depth, tab_len, tab_thk ], center=false);
+            translate([ +ix/2 - tab_depth, +py_short - tab_len/2, z0 ]) cube([ tab_depth, tab_len, tab_thk ], center=false);
+
+            // LEFT (−X): extend +X
+            translate([ -ix/2, -py_short - tab_len/2, z0 ]) cube([ tab_depth, tab_len, tab_thk ], center=false);
+            translate([ -ix/2, +py_short - tab_len/2, z0 ]) cube([ tab_depth, tab_len, tab_thk ], center=false);
+
+        } else {
+            // --- Long edges are LEFT/RIGHT (±X), tabs vary along Y: 3 each side ---
+            // RIGHT (+X): extend −X
+            translate([ +ix/2 - tab_depth, -py_long - tab_len/2, z0 ]) cube([ tab_depth, tab_len, tab_thk ], center=false);
+            translate([ +ix/2 - tab_depth,  0       - tab_len/2, z0 ]) cube([ tab_depth, tab_len, tab_thk ], center=false);
+            translate([ +ix/2 - tab_depth, +py_long - tab_len/2, z0 ]) cube([ tab_depth, tab_len, tab_thk ], center=false);
+
+            // LEFT (−X): extend +X
+            translate([ -ix/2, -py_long - tab_len/2, z0 ]) cube([ tab_depth, tab_len, tab_thk ], center=false);
+            translate([ -ix/2,  0       - tab_len/2, z0 ]) cube([ tab_depth, tab_len, tab_thk ], center=false);
+            translate([ -ix/2, +py_long - tab_len/2, z0 ]) cube([ tab_depth, tab_len, tab_thk ], center=false);
+
+            // --- Short edges are TOP/BOTTOM (±Y), tabs vary along X: 2 each side ---
+            // TOP (+Y): extend −Y
+            translate([ -px_short - tab_len/2, +iy/2 - tab_depth, z0 ]) cube([ tab_len, tab_depth, tab_thk ], center=false);
+            translate([ +px_short - tab_len/2, +iy/2 - tab_depth, z0 ]) cube([ tab_len, tab_depth, tab_thk ], center=false);
+
+            // BOTTOM (−Y): extend +Y
+            translate([ -px_short - tab_len/2, -iy/2, z0 ]) cube([ tab_len, tab_depth, tab_thk ], center=false);
+            translate([ +px_short - tab_len/2, -iy/2, z0 ]) cube([ tab_len, tab_depth, tab_thk ], center=false);
+        }
+    }
+}
+
+
+// use holes in tabs 
+// Replace your tab_holes_rect(...) with the matching pattern (again, no loops):
+
+module tab_holes_rect(ix=inner_x, iy=inner_y, od=tube_od) {
+    if (add_tabs && tabs_with_holes) {
+        z_top =  +od/2 - recess - ply_thick - ply_clear;
+        z0    =  z_top - tab_thk;
+
+        longX = (outer_x >= outer_y);
+        m = tab_margin;
+
+        px_long  = ix/2 - m;
+        py_long  = iy/2 - m;
+        px_short = ix/2 - m;
+        py_short = iy/2 - m;
+
+        if (longX) {
+            // Long edges TOP/BOTTOM (3 holes each), along X at -px_long, 0, +px_long
+            // Holes through tab thickness (vertical)
+            // TOP (+Y)
+            translate([ -px_long, +iy/2 - hole_inset, z0 - eps ]) cylinder(h = tab_thk + 2*eps, d = hole_dia, center=false, $fn=48);
+            translate([  0,       +iy/2 - hole_inset, z0 - eps ]) cylinder(h = tab_thk + 2*eps, d = hole_dia, center=false, $fn=48);
+            translate([ +px_long, +iy/2 - hole_inset, z0 - eps ]) cylinder(h = tab_thk + 2*eps, d = hole_dia, center=false, $fn=48);
+            // BOTTOM (−Y)
+            translate([ -px_long, -iy/2 + hole_inset, z0 - eps ]) cylinder(h = tab_thk + 2*eps, d = hole_dia, center=false, $fn=48);
+            translate([  0,       -iy/2 + hole_inset, z0 - eps ]) cylinder(h = tab_thk + 2*eps, d = hole_dia, center=false, $fn=48);
+            translate([ +px_long, -iy/2 + hole_inset, z0 - eps ]) cylinder(h = tab_thk + 2*eps, d = hole_dia, center=false, $fn=48);
+
+            // Short edges RIGHT/LEFT (2 holes each), along Y at ±py_short
+            // RIGHT (+X)
+            translate([ +ix/2 - hole_inset, -py_short, z0 - eps ]) cylinder(h = tab_thk + 2*eps, d = hole_dia, center=false, $fn=48);
+            translate([ +ix/2 - hole_inset, +py_short, z0 - eps ]) cylinder(h = tab_thk + 2*eps, d = hole_dia, center=false, $fn=48);
+            // LEFT (−X)
+            translate([ -ix/2 + hole_inset, -py_short, z0 - eps ]) cylinder(h = tab_thk + 2*eps, d = hole_dia, center=false, $fn=48);
+            translate([ -ix/2 + hole_inset, +py_short, z0 - eps ]) cylinder(h = tab_thk + 2*eps, d = hole_dia, center=false, $fn=48);
+
+        } else {
+            // Long edges RIGHT/LEFT (3 holes each), along Y at -py_long, 0, +py_long
+            // RIGHT (+X)
+            translate([ +ix/2 - hole_inset, -py_long, z0 - eps ]) cylinder(h = tab_thk + 2*eps, d = hole_dia, center=false, $fn=48);
+            translate([ +ix/2 - hole_inset,  0,       z0 - eps ]) cylinder(h = tab_thk + 2*eps, d = hole_dia, center=false, $fn=48);
+            translate([ +ix/2 - hole_inset, +py_long, z0 - eps ]) cylinder(h = tab_thk + 2*eps, d = hole_dia, center=false, $fn=48);
+            // LEFT (−X)
+            translate([ -ix/2 + hole_inset, -py_long, z0 - eps ]) cylinder(h = tab_thk + 2*eps, d = hole_dia, center=false, $fn=48);
+            translate([ -ix/2 + hole_inset,  0,       z0 - eps ]) cylinder(h = tab_thk + 2*eps, d = hole_dia, center=false, $fn=48);
+            translate([ -ix/2 + hole_inset, +py_long, z0 - eps ]) cylinder(h = tab_thk + 2*eps, d = hole_dia, center=false, $fn=48);
+
+            // Short edges TOP/BOTTOM (2 holes each), along X at ±px_short
+            // TOP (+Y)
+            translate([ -px_short, +iy/2 - hole_inset, z0 - eps ]) cylinder(h = tab_thk + 2*eps, d = hole_dia, center=false, $fn=48);
+            translate([ +px_short, +iy/2 - hole_inset, z0 - eps ]) cylinder(h = tab_thk + 2*eps, d = hole_dia, center=false, $fn=48);
+            // BOTTOM (−Y)
+            translate([ -px_short, -iy/2 + hole_inset, z0 - eps ]) cylinder(h = tab_thk + 2*eps, d = hole_dia, center=false, $fn=48);
+            translate([ +px_short, -iy/2 + hole_inset, z0 - eps ]) cylinder(h = tab_thk + 2*eps, d = hole_dia, center=false, $fn=48);
+        }
+    }
+}
+
+// In your BOM block, replace the q_tabs line with:
+// Tabs total: 2 long sides + 2 short sides
+longX_flag = (outer_x_in >= outer_y_in);
+q_tabs = 2 * (longX_flag ? n_tabs_long_side : n_tabs_short_side)
+       + 2 * (longX_flag ? n_tabs_short_side : n_tabs_long_side);
+
+
+// And keep the echo line:
+echo(str("BOM, tabs, qty=", q_tabs, ", size_in=1x1x", tab_thk_in));
